@@ -25,6 +25,25 @@ const MyPrefsWidget = new GObject.Class({
             label: "Change Units: "
         });
 
-        this.append(myLabel);
+        let spinButton = new Gtk.SpinButton();
+
+        spinButton.set_sensitive(true);
+        spinButton.set_range(-60, 60);
+        spinButton.set_value(0);
+        spinButton.set_increments(1, 2);
+
+        spinButton.connect("value-changed", function(w) {
+            log(w.get_value_as_init());
+        });
+
+        let hswitch = new Gtk.Switch();
+
+        let hBox = new Gtk.Box();
+        hBox.set_orientation(Gtk.Orientation.HORIZONTAL);
+
+        hBox.prepend(myLabel, false, false, 0);
+        hBox.append(spinButton, false, false, 0);
+
+        this.append(hBox);
     }
 });
