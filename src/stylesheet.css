@@ -10,3 +10,11 @@
     min-width: 210px;
     text-align: left;
 }
+
+.colored .download-label {
+    color: #87C442;
+}
+
+.colored .upload-label {
+    color: #FFB86C;
+}

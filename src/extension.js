@@ -16,16 +16,16 @@ import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/
 
 const refreshTime = 1.0; // Set refresh time to one second.
 const unitBase = 1024.0; // 1 Gb == 1024Mb or 1Mb == 1024Kb etc.
-const defaultNetSpeedText = 'SB: ↓ -.-- --  ↑ -.-- --';
+const defaultNetSpeedText = '↓ -.-- --  ↑ -.-- --';
 const bit = 8; // 8 bits make a byte
 
 let prevUploadBits = 0,
     prevDownloadBits = 0;
-let containerButton, netSpeedLabel, refreshLoop, settings;
+let containerButton, downloadLabel, uploadLabel, refreshLoop, settings;
 
 
 const updateNetSpeed = () => {
-    if (netSpeedLabel) {
+    if (downloadLabel && uploadLabel) {
         try {
             const lines = Shell.get_file_contents_utf8_sync('/proc/net/dev').split('\n');
             let uploadBits = 0;
@@ -46,13 +46,15 @@ const updateNetSpeed = () => {
             const downloadSpeed = (downloadBits - prevDownloadBits) / (refreshTime * unitBase);
 
             const useBits = settings.get_boolean('use-bits');
-            netSpeedLabel.set_text(`SB: ↓ ${getFormattedSpeed(downloadSpeed, useBits)}  ↑ ${getFormattedSpeed(uploadSpeed, useBits)}`);
+            downloadLabel.set_text(` ↓ ${getFormattedSpeed(downloadSpeed, useBits)} `);
+            uploadLabel.set_text(` ↑ ${getFormattedSpeed(uploadSpeed, useBits)} `);
 
             prevUploadBits = uploadBits;
             prevDownloadBits = downloadBits;
             return true;
         } catch (e) {
-            netSpeedLabel.set_text(defaultNetSpeedText);
+            downloadLabel.set_text(' ↓ -.-- -- ');
+            uploadLabel.set_text(' ↑ -.-- -- ');
         }
     }
     return false;
@@ -73,6 +75,15 @@ const getFormattedSpeed = (speed, useBits) => {
     return `${speed.toFixed(2)} ${units[i]}`;
 };
 
+const updateLabelStyle = () => {
+    const showColors = settings.get_boolean('show-colors');
+    if (showColors) {
+        containerButton.add_style_class_name('colored');
+    } else {
+        containerButton.remove_style_class_name('colored');
+    }
+};
+
 export default class SpeedBuzzExtension extends Extension {
     enable() {
         settings = this.getSettings('org.gnome.shell.extensions.speedbuzz');
@@ -84,17 +95,34 @@ export default class SpeedBuzzExtension extends Extension {
             y_expand: false,
             track_hover: true
         });
-        netSpeedLabel = new St.Label({
-            text: defaultNetSpeedText,
-            style_class: 'netSpeedLabel',
+
+        const box = new St.BoxLayout();
+
+        downloadLabel = new St.Label({
+            text: ' ↓ -.-- -- ',
+            style_class: 'download-label',
             y_align: Clutter.ActorAlign.CENTER
         });
-        containerButton.set_child(netSpeedLabel);
+
+        uploadLabel = new St.Label({
+            text: ' ↑ -.-- -- ',
+            style_class: 'upload-label',
+            y_align: Clutter.ActorAlign.CENTER
+        });
+
+        box.add_child(downloadLabel);
+        box.add_child(uploadLabel);
+
+        containerButton.set_child(box);
         containerButton.connect('button-press-event', () => {
             this.openPreferences();
         });
     
         Main.panel._rightBox.insert_child_at_index(containerButton, 0);
+
+        settings.connect('changed::show-colors', updateLabelStyle);
+        updateLabelStyle();
+
         refreshLoop = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, refreshTime, updateNetSpeed);
     }
 
@@ -108,9 +136,13 @@ export default class SpeedBuzzExtension extends Extension {
             containerButton.destroy();
             containerButton = null;
         }
-        if (netSpeedLabel) {
-            netSpeedLabel.destroy();
-            netSpeedLabel = null;
+        if (downloadLabel) {
+            downloadLabel.destroy();
+            downloadLabel = null;
+        }
+        if (uploadLabel) {
+            uploadLabel.destroy();
+            uploadLabel = null;
         }
         if (settings) {
             settings = null;

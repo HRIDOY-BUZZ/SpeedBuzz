@@ -5,5 +5,9 @@
       <default>true</default>
       <summary>Use bits/s instead of bytes/s</summary>
     </key>
+    <key name="show-colors" type="b">
+      <default>true</default>
+      <summary>Show colors in the label</summary>
+    </key>
   </schema>
 </schemalist>

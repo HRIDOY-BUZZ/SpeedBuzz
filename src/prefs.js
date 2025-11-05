@@ -29,12 +29,31 @@ export default class SpeedBuzzPreferences extends ExtensionPreferences {
         row.add_suffix(toggle);
         row.activatable_widget = toggle;
         group.add(row);
+
+        const colorsRow = new Adw.ActionRow({
+            title: 'Show Colors',
+            subtitle: 'Display download and upload speeds in different colors.',
+        });
+
+        const colorsToggle = new Gtk.Switch({
+            active: settings.get_boolean('show-colors'),
+            valign: Gtk.Align.CENTER,
+        });
+
+        colorsRow.add_suffix(colorsToggle);
+        colorsRow.activatable_widget = colorsToggle;
+        group.add(colorsRow);
+
         page.add(group);
 
         window.add(page);
 
         toggle.connect('notify::active', (widget) => {
             settings.set_boolean('use-bits', widget.active);
+        });
+
+        colorsToggle.connect('notify::active', (widget) => {
+            settings.set_boolean('show-colors', widget.active);
         });
 
         const aboutPage = new Adw.AboutWindow({
