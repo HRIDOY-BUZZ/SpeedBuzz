@@ -26,7 +26,7 @@ let containerButton, downloadLabel, uploadLabel, SBLabel, refreshLoop, settings;
 
 const updateNetSpeed = () => {
 
-    SBLabel.set_text('SB: ');
+    SBLabel.set_text(' SB: ');
 
     if (downloadLabel && uploadLabel) {
         try {
@@ -48,9 +48,9 @@ const updateNetSpeed = () => {
             const uploadSpeed = (uploadBits - prevUploadBits) / (refreshTime * unitBase);
             const downloadSpeed = (downloadBits - prevDownloadBits) / (refreshTime * unitBase);
 
-            const useBits = settings.get_boolean('use-bits');
-            downloadLabel.set_text(` ↓ ${getFormattedSpeed(downloadSpeed, useBits)} `);
-            uploadLabel.set_text(` ↑ ${getFormattedSpeed(uploadSpeed, useBits)} `);
+            const useBytes = settings.get_boolean('use-bytes');
+            downloadLabel.set_text(`↓ ${getFormattedSpeed(downloadSpeed, useBytes)} `);
+            uploadLabel.set_text(`↑ ${getFormattedSpeed(uploadSpeed, useBytes)} `);
 
             prevUploadBits = uploadBits;
             prevDownloadBits = downloadBits;
@@ -58,19 +58,19 @@ const updateNetSpeed = () => {
         } catch (e) {
             
             downloadLabel.set_text('↓ -.-- -- ');
-            uploadLabel.set_text(' ↑ -.-- --');
+            uploadLabel.set_text('↑ -.-- -- ');
         }
     }
     return false;
 };
 
-const getFormattedSpeed = (speed, useBits) => {
-    if (!useBits) {
-        speed /= 8;
+const getFormattedSpeed = (speed, useBytes) => {
+    if (useBytes) {
+        speed /= bit;
     }
 
     let i = 0;
-    const units = useBits ? ["Kbps", "Mbps", "Gbps", "Tbps"] : ["KB/s", "MB/s", "GB/s", "TB/s"];
+    const units = useBytes ? ["KB/s", "MB/s", "GB/s", "TB/s"] : ["Kbps", "Mbps", "Gbps", "Tbps"];
 
     while (speed >= unitBase) {
         speed /= unitBase;
@@ -102,23 +102,23 @@ export default class SpeedBuzzExtension extends Extension {
 
         const box = new St.BoxLayout();
 
+        SBLabel = new St.Label({
+            text: ' SB: ',
+            style_class: 'sb-label',
+            y_align: Clutter.ActorAlign.CENTER
+        });
+
         downloadLabel = new St.Label({
-            text: ' ↓ -.-- -- ',
+            text: '↓ -.-- -- ',
             style_class: 'download-label',
             y_align: Clutter.ActorAlign.CENTER
         });
 
         uploadLabel = new St.Label({
-            text: ' ↑ -.-- -- ',
+            text: '↑ -.-- -- ',
             style_class: 'upload-label',
             y_align: Clutter.ActorAlign.CENTER
         });
-
-        SBLabel = new St.Label({
-            text: 'SB: ',
-            style_class: 'sb-label',
-            y_align: Clutter.ActorAlign.CENTER
-        })
 
         box.add_child(SBLabel);
         box.add_child(downloadLabel);

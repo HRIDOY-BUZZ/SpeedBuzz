@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
   <schema id="org.gnome.shell.extensions.speedbuzz" path="/org/gnome/shell/extensions/speedbuzz/">
-    <key name="use-bits" type="b">
-      <default>true</default>
-      <summary>Use bits/s instead of bytes/s</summary>
+    <key name="use-bytes" type="b">
+      <default>false</default>
+      <summary>Use bytes/s instead of bps</summary>
     </key>
     <key name="show-colors" type="b">
-      <default>true</default>
+      <default>false</default>
       <summary>Show colors in the label</summary>
     </key>
   </schema>

@@ -17,12 +17,12 @@ export default class SpeedBuzzPreferences extends ExtensionPreferences {
             title: 'General',
         });
         const row = new Adw.ActionRow({
-            title: 'Use bits/s',
-            subtitle: 'Display speed in bits per second instead of bytes per second.',
+            title: 'Use bytes/s',
+            subtitle: 'Display speed in bytes per second instead of bits per second.',
         });
 
         const toggle = new Gtk.Switch({
-            active: settings.get_boolean('use-bits'),
+            active: settings.get_boolean('use-bytes'),
             valign: Gtk.Align.CENTER,
         });
 
@@ -49,7 +49,7 @@ export default class SpeedBuzzPreferences extends ExtensionPreferences {
         window.add(page);
 
         toggle.connect('notify::active', (widget) => {
-            settings.set_boolean('use-bits', widget.active);
+            settings.set_boolean('use-bytes', widget.active);
         });
 
         colorsToggle.connect('notify::active', (widget) => {
@@ -59,7 +59,7 @@ export default class SpeedBuzzPreferences extends ExtensionPreferences {
         const aboutPage = new Adw.AboutWindow({
             application_name: 'Speed-Buzz: Internet Speed Meter',
             developer_name: 'Al-Amin Islam Hridoy',
-            version: '1.2',
+            version: '2.0',
             website: 'https://github.com/HRIDOY-BUZZ/SpeedBuzz',
             issue_url: 'https://github.com/HRIDOY-BUZZ/SpeedBuzz/issues',
             license_type: Gtk.License.GPL_3_0,
