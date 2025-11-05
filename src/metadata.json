@@ -6,9 +6,11 @@
         "45",
         "46",
         "47",
-        "48"
+        "48",
+        "49"
     ],
     "url": "https://github.com/HRIDOY-BUZZ/SpeedBuzz",
     "uuid": "SpeedBuzz@hridoybuzz.dev",
-    "version": 1.2
+    "version": 1.2,
+    "preferences-file": "prefs.js"
 }

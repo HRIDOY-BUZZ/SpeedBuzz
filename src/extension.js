@@ -12,20 +12,17 @@ import GLib from "gi://GLib";
 import Shell from "gi://Shell";
 
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
-import {
-  Extension,
-  gettext as _,
-} from "resource:///org/gnome/shell/extensions/extension.js";
+import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const refreshTime = 1.0; // Set refresh time to one second.
 const unitBase = 1024.0; // 1 Gb == 1024Mb or 1Mb == 1024Kb etc.
-const units = ["Kbps", "Mbps", "Gbps", "Tbps"];
 const defaultNetSpeedText = 'SB: ↓ -.-- --  ↑ -.-- --';
 const bit = 8; // 8 bits make a byte
 
 let prevUploadBits = 0,
     prevDownloadBits = 0;
-let containerButton, netSpeedLabel, refreshLoop;
+let containerButton, netSpeedLabel, refreshLoop, settings;
+
 
 const updateNetSpeed = () => {
     if (netSpeedLabel) {
@@ -48,7 +45,8 @@ const updateNetSpeed = () => {
             const uploadSpeed = (uploadBits - prevUploadBits) / (refreshTime * unitBase);
             const downloadSpeed = (downloadBits - prevDownloadBits) / (refreshTime * unitBase);
 
-            netSpeedLabel.set_text(`SB: ↓ ${getFormattedSpeed(downloadSpeed)}  ↑ ${getFormattedSpeed(uploadSpeed)}`);
+            const useBits = settings.get_boolean('use-bits');
+            netSpeedLabel.set_text(`SB: ↓ ${getFormattedSpeed(downloadSpeed, useBits)}  ↑ ${getFormattedSpeed(uploadSpeed, useBits)}`);
 
             prevUploadBits = uploadBits;
             prevDownloadBits = downloadBits;
@@ -60,8 +58,14 @@ const updateNetSpeed = () => {
     return false;
 };
 
-const getFormattedSpeed = (speed) => {
+const getFormattedSpeed = (speed, useBits) => {
+    if (!useBits) {
+        speed /= 8;
+    }
+
     let i = 0;
+    const units = useBits ? ["Kbps", "Mbps", "Gbps", "Tbps"] : ["KB/s", "MB/s", "GB/s", "TB/s"];
+
     while (speed >= unitBase) {
         speed /= unitBase;
         i++;
@@ -71,13 +75,14 @@ const getFormattedSpeed = (speed) => {
 
 export default class SpeedBuzzExtension extends Extension {
     enable() {
+        settings = this.getSettings('org.gnome.shell.extensions.speedbuzz');
         containerButton = new St.Bin({
             style_class: 'panel-button',
             reactive: true,
             can_focus: false,
             x_expand: true,
             y_expand: false,
-            track_hover: false
+            track_hover: true
         });
         netSpeedLabel = new St.Label({
             text: defaultNetSpeedText,
@@ -85,6 +90,9 @@ export default class SpeedBuzzExtension extends Extension {
             y_align: Clutter.ActorAlign.CENTER
         });
         containerButton.set_child(netSpeedLabel);
+        containerButton.connect('button-press-event', () => {
+            this.openPreferences();
+        });
     
         Main.panel._rightBox.insert_child_at_index(containerButton, 0);
         refreshLoop = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, refreshTime, updateNetSpeed);
@@ -103,6 +111,9 @@ export default class SpeedBuzzExtension extends Extension {
         if (netSpeedLabel) {
             netSpeedLabel.destroy();
             netSpeedLabel = null;
+        }
+        if (settings) {
+            settings = null;
         }
     }
 }
