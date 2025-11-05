@@ -21,10 +21,13 @@ const bit = 8; // 8 bits make a byte
 
 let prevUploadBits = 0,
     prevDownloadBits = 0;
-let containerButton, downloadLabel, uploadLabel, refreshLoop, settings;
+let containerButton, downloadLabel, uploadLabel, SBLabel, refreshLoop, settings;
 
 
 const updateNetSpeed = () => {
+
+    SBLabel.set_text('SB: ');
+
     if (downloadLabel && uploadLabel) {
         try {
             const lines = Shell.get_file_contents_utf8_sync('/proc/net/dev').split('\n');
@@ -53,8 +56,9 @@ const updateNetSpeed = () => {
             prevDownloadBits = downloadBits;
             return true;
         } catch (e) {
-            downloadLabel.set_text(' ↓ -.-- -- ');
-            uploadLabel.set_text(' ↑ -.-- -- ');
+            
+            downloadLabel.set_text('↓ -.-- -- ');
+            uploadLabel.set_text(' ↑ -.-- --');
         }
     }
     return false;
@@ -110,6 +114,13 @@ export default class SpeedBuzzExtension extends Extension {
             y_align: Clutter.ActorAlign.CENTER
         });
 
+        SBLabel = new St.Label({
+            text: 'SB: ',
+            style_class: 'sb-label',
+            y_align: Clutter.ActorAlign.CENTER
+        })
+
+        box.add_child(SBLabel);
         box.add_child(downloadLabel);
         box.add_child(uploadLabel);
 
