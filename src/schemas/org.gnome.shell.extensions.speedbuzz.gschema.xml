@@ -9,5 +9,14 @@
       <default>false</default>
       <summary>Show colors in the label</summary>
     </key>
+    <key name="position" type="s">
+      <choices>
+        <choice value="left"/>
+        <choice value="center"/>
+        <choice value="right"/>
+      </choices>
+      <default>'right'</default>
+      <summary>Position of the indicator</summary>
+    </key>
   </schema>
 </schemalist>

@@ -50,6 +50,23 @@ export default class SpeedBuzzPreferences extends ExtensionPreferences {
         colorsRow.activatable_widget = colorsToggle;
         group.add(colorsRow);
 
+        const positionRow = new Adw.ComboRow({
+            title: 'Position',
+            subtitle: 'Position of the indicator in the panel.',
+            model: new Gtk.StringList({
+                strings: ['left', 'center', 'right'],
+            }),
+        });
+
+        const positionMap = ['left', 'center', 'right'];
+        positionRow.selected = positionMap.indexOf(settings.get_string('position'));
+
+        positionRow.connect('notify::selected', (widget) => {
+            settings.set_string('position', positionMap[widget.selected]);
+        });
+
+        group.add(positionRow);
+
         page.add(group);
 
         window.add(page);

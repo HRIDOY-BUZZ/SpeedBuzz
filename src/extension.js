@@ -137,12 +137,37 @@ class SpeedBuzzIndicator extends PanelMenu.Button {
 
 export default class SpeedBuzzExtension extends Extension {
     enable() {
+        this._settings = this.getSettings('org.gnome.shell.extensions.speedbuzz');
+        this._indicator = null;
+
+        this._changedId = this._settings.connect('changed::position', () => {
+            this._updatePosition();
+        });
+
+        this._updatePosition();
+    }
+
+    _updatePosition() {
+        if (this._indicator) {
+            this._indicator.destroy();
+            this._indicator = null;
+        }
+
         this._indicator = new SpeedBuzzIndicator(this);
-        Main.panel.addToStatusArea(this.uuid, this._indicator);
+        const position = this._settings.get_string('position');
+        Main.panel.addToStatusArea(this.uuid, this._indicator, 0, position);
     }
 
     disable() {
-        this._indicator.destroy();
-        this._indicator = null;
+        if (this._changedId) {
+            this._settings.disconnect(this._changedId);
+            this._changedId = null;
+        }
+
+        if (this._indicator) {
+            this._indicator.destroy();
+            this._indicator = null;
+        }
+        this._settings = null;
     }
 }
