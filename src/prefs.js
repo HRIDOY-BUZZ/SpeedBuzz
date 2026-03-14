@@ -1,8 +1,14 @@
+/*
+ * Name: Speed-Buzz: Internet Speed Meter
+ * Description: A simple and minimal internet speed meter extension for Gnome Shell.
+ * Author: Al-Amin Islam Hridoy
+ * GitHub: https://github.com/HRIDOY-BUZZ/SpeedBuzz
+ * License: GPLv3.0
+ */
 
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
-
 
 export default class SpeedBuzzPreferences extends ExtensionPreferences {
     constructor(metadata) {
@@ -59,7 +65,7 @@ export default class SpeedBuzzPreferences extends ExtensionPreferences {
         const aboutPage = new Adw.AboutWindow({
             application_name: 'Speed-Buzz: Internet Speed Meter',
             developer_name: 'Al-Amin Islam Hridoy',
-            version: '2.0',
+            version: '3.0',
             website: 'https://github.com/HRIDOY-BUZZ/SpeedBuzz',
             issue_url: 'https://github.com/HRIDOY-BUZZ/SpeedBuzz/issues',
             license_type: Gtk.License.GPL_3_0,

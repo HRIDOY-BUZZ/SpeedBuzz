@@ -10,25 +10,65 @@ import St from "gi://St";
 import Clutter from "gi://Clutter";
 import GLib from "gi://GLib";
 import Shell from "gi://Shell";
+import GObject from "gi://GObject";
 
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
+import * as PanelMenu from "resource:///org/gnome/shell/ui/panelMenu.js";
 import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const refreshTime = 1.0; // Set refresh time to one second.
 const unitBase = 1024.0; // 1 Gb == 1024Mb or 1Mb == 1024Kb etc.
-const defaultNetSpeedText = '↓ -.-- --  ↑ -.-- --';
 const bit = 8; // 8 bits make a byte
 
-let prevUploadBits = 0,
-    prevDownloadBits = 0;
-let containerButton, downloadLabel, uploadLabel, SBLabel, refreshLoop, settings;
+const SpeedBuzzIndicator = GObject.registerClass(
+class SpeedBuzzIndicator extends PanelMenu.Button {
+    _init(extension) {
+        super._init(0.5, 'Speed-Buzz');
+        this._extension = extension;
+        this._settings = extension.getSettings('org.gnome.shell.extensions.speedbuzz');
 
+        this._prevUploadBits = 0;
+        this._prevDownloadBits = 0;
 
-const updateNetSpeed = () => {
+        const box = new St.BoxLayout();
 
-    SBLabel.set_text(' SB: ');
+        this._SBLabel = new St.Label({
+            text: ' SB: ',
+            style_class: 'sb-label',
+            y_align: Clutter.ActorAlign.CENTER
+        });
 
-    if (downloadLabel && uploadLabel) {
+        this._downloadLabel = new St.Label({
+            text: '↓ -.-- -- ',
+            style_class: 'download-label',
+            y_align: Clutter.ActorAlign.CENTER
+        });
+
+        this._uploadLabel = new St.Label({
+            text: '↑ -.-- -- ',
+            style_class: 'upload-label',
+            y_align: Clutter.ActorAlign.CENTER
+        });
+
+        box.add_child(this._SBLabel);
+        box.add_child(this._downloadLabel);
+        box.add_child(this._uploadLabel);
+
+        this.add_child(box);
+        
+        this.connect('button-press-event', () => {
+            this._extension.openPreferences();
+        });
+
+        this._settings.connect('changed::show-colors', this._updateLabelStyle.bind(this));
+        this._updateLabelStyle();
+
+        this._refreshLoop = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, refreshTime, this._updateNetSpeed.bind(this));
+    }
+
+    _updateNetSpeed() {
+        if (!this._downloadLabel || !this._uploadLabel) return false;
+
         try {
             const lines = Shell.get_file_contents_utf8_sync('/proc/net/dev').split('\n');
             let uploadBits = 0;
@@ -37,7 +77,7 @@ const updateNetSpeed = () => {
                 const line = lines[i].trim();
                 const column = line.split(/\W+/);
 
-                if (column.length <= 2) break;
+                if (column.length <= 2) continue;
 
                 if (column[0] != 'lo' && !isNaN(parseInt(column[1])) && !column[0].match(/^br[0-9]+/) && !column[0].match(/^tun[0-9]+/) && !column[0].match(/^tap[0-9]+/) && !column[0].match(/^vnet[0-9]+/) && !column[0].match(/^virbr[0-9]+/)) {
                     uploadBits += (parseInt(column[9]) * bit);
@@ -45,118 +85,64 @@ const updateNetSpeed = () => {
                 }
             }
 
-            const uploadSpeed = (uploadBits - prevUploadBits) / (refreshTime * unitBase);
-            const downloadSpeed = (downloadBits - prevDownloadBits) / (refreshTime * unitBase);
+            const uploadSpeed = (uploadBits - this._prevUploadBits) / (refreshTime * unitBase);
+            const downloadSpeed = (downloadBits - this._prevDownloadBits) / (refreshTime * unitBase);
 
-            const useBytes = settings.get_boolean('use-bytes');
-            downloadLabel.set_text(`↓ ${getFormattedSpeed(downloadSpeed, useBytes)} `);
-            uploadLabel.set_text(`↑ ${getFormattedSpeed(uploadSpeed, useBytes)} `);
+            const useBytes = this._settings.get_boolean('use-bytes');
+            this._downloadLabel.set_text(`↓ ${this._getFormattedSpeed(downloadSpeed, useBytes)} `);
+            this._uploadLabel.set_text(`↑ ${this._getFormattedSpeed(uploadSpeed, useBytes)} `);
 
-            prevUploadBits = uploadBits;
-            prevDownloadBits = downloadBits;
+            this._prevUploadBits = uploadBits;
+            this._prevDownloadBits = downloadBits;
             return true;
         } catch (e) {
-            
-            downloadLabel.set_text('↓ -.-- -- ');
-            uploadLabel.set_text('↑ -.-- -- ');
+            this._downloadLabel.set_text('↓ -.-- -- ');
+            this._uploadLabel.set_text('↑ -.-- -- ');
+        }
+        return false;
+    }
+
+    _getFormattedSpeed(speed, useBytes) {
+        if (useBytes) {
+            speed /= bit;
+        }
+
+        let i = 0;
+        const units = useBytes ? ["KB/s", "MB/s", "GB/s", "TB/s"] : ["Kbps", "Mbps", "Gbps", "Tbps"];
+
+        while (speed >= unitBase) {
+            speed /= unitBase;
+            i++;
+        }
+        return `${speed.toFixed(2)} ${units[i]}`;
+    }
+
+    _updateLabelStyle() {
+        const showColors = this._settings.get_boolean('show-colors');
+        if (showColors) {
+            this.add_style_class_name('colored');
+        } else {
+            this.remove_style_class_name('colored');
         }
     }
-    return false;
-};
 
-const getFormattedSpeed = (speed, useBytes) => {
-    if (useBytes) {
-        speed /= bit;
+    destroy() {
+        if (this._refreshLoop) {
+            GLib.source_remove(this._refreshLoop);
+            this._refreshLoop = null;
+        }
+        super.destroy();
     }
-
-    let i = 0;
-    const units = useBytes ? ["KB/s", "MB/s", "GB/s", "TB/s"] : ["Kbps", "Mbps", "Gbps", "Tbps"];
-
-    while (speed >= unitBase) {
-        speed /= unitBase;
-        i++;
-    }
-    return `${speed.toFixed(2)} ${units[i]}`;
-};
-
-const updateLabelStyle = () => {
-    const showColors = settings.get_boolean('show-colors');
-    if (showColors) {
-        containerButton.add_style_class_name('colored');
-    } else {
-        containerButton.remove_style_class_name('colored');
-    }
-};
+});
 
 export default class SpeedBuzzExtension extends Extension {
     enable() {
-        settings = this.getSettings('org.gnome.shell.extensions.speedbuzz');
-        containerButton = new St.Bin({
-            style_class: 'panel-button',
-            reactive: true,
-            can_focus: false,
-            x_expand: true,
-            y_expand: false,
-            track_hover: true
-        });
-
-        const box = new St.BoxLayout();
-
-        SBLabel = new St.Label({
-            text: ' SB: ',
-            style_class: 'sb-label',
-            y_align: Clutter.ActorAlign.CENTER
-        });
-
-        downloadLabel = new St.Label({
-            text: '↓ -.-- -- ',
-            style_class: 'download-label',
-            y_align: Clutter.ActorAlign.CENTER
-        });
-
-        uploadLabel = new St.Label({
-            text: '↑ -.-- -- ',
-            style_class: 'upload-label',
-            y_align: Clutter.ActorAlign.CENTER
-        });
-
-        box.add_child(SBLabel);
-        box.add_child(downloadLabel);
-        box.add_child(uploadLabel);
-
-        containerButton.set_child(box);
-        containerButton.connect('button-press-event', () => {
-            this.openPreferences();
-        });
-    
-        Main.panel._rightBox.insert_child_at_index(containerButton, 0);
-
-        settings.connect('changed::show-colors', updateLabelStyle);
-        updateLabelStyle();
-
-        refreshLoop = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, refreshTime, updateNetSpeed);
+        this._indicator = new SpeedBuzzIndicator(this);
+        Main.panel.addToStatusArea(this.uuid, this._indicator);
     }
 
     disable() {
-        if (refreshLoop) {
-            GLib.source_remove(refreshLoop);
-            refreshLoop = null;
-        }
-        if (containerButton) {
-            Main.panel._rightBox.remove_child(containerButton);
-            containerButton.destroy();
-            containerButton = null;
-        }
-        if (downloadLabel) {
-            downloadLabel.destroy();
-            downloadLabel = null;
-        }
-        if (uploadLabel) {
-            uploadLabel.destroy();
-            uploadLabel = null;
-        }
-        if (settings) {
-            settings = null;
-        }
+        this._indicator.destroy();
+        this._indicator = null;
     }
 }
