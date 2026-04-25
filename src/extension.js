@@ -56,11 +56,11 @@ class SpeedBuzzIndicator extends PanelMenu.Button {
 
         this.add_child(box);
         
-        this.connect('button-press-event', () => {
+        this._buttonPressId = this.connect('button-press-event', () => {
             this._extension.openPreferences();
         });
 
-        this._settings.connect('changed::show-colors', this._updateLabelStyle.bind(this));
+        this._showColorsId = this._settings.connect('changed::show-colors', this._updateLabelStyle.bind(this));
         this._updateLabelStyle();
 
         this._refreshLoop = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, refreshTime, this._updateNetSpeed.bind(this));
@@ -127,10 +127,23 @@ class SpeedBuzzIndicator extends PanelMenu.Button {
     }
 
     destroy() {
+        if (this._buttonPressId) {
+            this.disconnect(this._buttonPressId);
+            this._buttonPressId = 0;
+        }
+
+        if (this._showColorsId) {
+            this._settings.disconnect(this._showColorsId);
+            this._showColorsId = 0;
+        }
+
         if (this._refreshLoop) {
             GLib.source_remove(this._refreshLoop);
             this._refreshLoop = null;
         }
+
+        this._settings = null;
+
         super.destroy();
     }
 });
