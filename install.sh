@@ -79,7 +79,15 @@ install() {
   mkdir -p "${INSTALL_DIR}"
   rm -rf "${INSTALL_DIR}/SpeedBuzz@hridoybuzz.dev"
   cp -rf "${SRC_DIR}/src" "${INSTALL_DIR}/SpeedBuzz@hridoybuzz.dev" &>> "$LOG_FILE"
-  is_failed "Done" "Skipping: Can not install to ${INSTALL_DIR}. See log for more info."
+  is_failed "Copied files" "Skipping: Can not install to ${INSTALL_DIR}. See log for more info."
+
+  if command -v glib-compile-schemas >/dev/null 2>&1; then
+    print "Compiling schemas"
+    glib-compile-schemas "${INSTALL_DIR}/SpeedBuzz@hridoybuzz.dev/schemas" &>> "$LOG_FILE"
+    is_warning "Done" "Warning: Could not compile schemas. You might need to do it manually."
+  else
+    print_warning "glib-compile-schemas not found. Skipping schema compilation."
+  fi
 }
 
 # build for release
